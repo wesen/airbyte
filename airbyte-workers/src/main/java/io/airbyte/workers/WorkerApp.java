@@ -75,7 +75,6 @@ import io.airbyte.workers.temporal.sync.ReplicationActivityImpl;
 import io.airbyte.workers.temporal.sync.SyncWorkflowImpl;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.temporal.client.WorkflowClient;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
@@ -146,7 +145,7 @@ public class WorkerApp {
           }
         });
 
-    final WorkerFactory factory = WorkerFactory.newInstance(WorkflowClient.newInstance(temporalService));
+    final WorkerFactory factory = TemporalClient.productionWorkerFactory(configs);
 
     if (configs.shouldRunGetSpecWorkflows()) {
       registerGetSpec(factory);
@@ -374,18 +373,13 @@ public class WorkerApp {
     final Path workspaceRoot = configs.getWorkspaceRoot();
     LOGGER.info("workspaceRoot = " + workspaceRoot);
 
-    final String temporalHost = configs.getTemporalHost();
-    LOGGER.info("temporalHost = " + temporalHost);
-
     final SecretsHydrator secretsHydrator = SecretPersistence.getSecretsHydrator(configsDslContext, configs);
 
     if (configs.getWorkerEnvironment().equals(WorkerEnvironment.KUBERNETES)) {
       KubePortManagerSingleton.init(configs.getTemporalWorkerPorts());
     }
 
-    final WorkflowServiceStubs temporalService = TemporalUtils.createTemporalService(temporalHost);
-
-    TemporalUtils.configureTemporalNamespace(temporalService);
+    final WorkflowServiceStubs temporalService = TemporalUtils.createTemporalProductionService();
 
     final Database configDatabase = new Database(configsDslContext);
     final FeatureFlags featureFlags = new EnvVariableFeatureFlags();
@@ -412,7 +406,7 @@ public class WorkerApp {
         configRepository,
         new OAuthConfigSupplier(configRepository, trackingClient));
 
-    final TemporalClient temporalClient = TemporalClient.production(temporalHost, workspaceRoot, configs);
+    final TemporalClient temporalClient = TemporalClient.production(configs);
 
     final TemporalWorkerRunFactory temporalWorkerRunFactory = new TemporalWorkerRunFactory(
         temporalClient,
