@@ -75,6 +75,7 @@ import io.airbyte.workers.temporal.sync.ReplicationActivityImpl;
 import io.airbyte.workers.temporal.sync.SyncWorkflowImpl;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.temporal.client.WorkflowClient;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
@@ -113,7 +114,7 @@ public class WorkerApp {
   private final ProcessFactory discoverProcessFactory;
   private final ProcessFactory replicationProcessFactory;
   private final SecretsHydrator secretsHydrator;
-  private final WorkflowServiceStubs temporalService;
+  private final WorkflowClient workflowClient;
   private final ConfigRepository configRepository;
   private final MaxWorkersConfig maxWorkers;
   private final WorkerEnvironment workerEnvironment;
@@ -145,7 +146,7 @@ public class WorkerApp {
           }
         });
 
-    final WorkerFactory factory = TemporalClient.getWorkerFactory(configs);
+    final WorkerFactory factory = WorkerFactory.newInstance(workflowClient);
 
     if (configs.shouldRunGetSpecWorkflows()) {
       registerGetSpec(factory);
@@ -379,8 +380,6 @@ public class WorkerApp {
       KubePortManagerSingleton.init(configs.getTemporalWorkerPorts());
     }
 
-    final WorkflowServiceStubs temporalService = TemporalUtils.createTemporalService();
-
     final Database configDatabase = new Database(configsDslContext);
     final FeatureFlags featureFlags = new EnvVariableFeatureFlags();
     final JsonSecretsProcessor jsonSecretsProcessor = JsonSecretsProcessor.builder()
@@ -406,7 +405,9 @@ public class WorkerApp {
         configRepository,
         new OAuthConfigSupplier(configRepository, trackingClient));
 
-    final TemporalClient temporalClient = TemporalClient.get(configs);
+    final WorkflowServiceStubs temporalService = TemporalUtils.createTemporalService();
+    final WorkflowClient workflowClient = TemporalUtils.createWorkflowClient(temporalService, TemporalUtils.getNamespace());
+    final TemporalClient temporalClient = new TemporalClient(workflowClient, configs.getWorkspaceRoot(), temporalService);
 
     final TemporalWorkerRunFactory temporalWorkerRunFactory = new TemporalWorkerRunFactory(
         temporalClient,
@@ -438,7 +439,7 @@ public class WorkerApp {
         discoverProcessFactory,
         replicationProcessFactory,
         secretsHydrator,
-        temporalService,
+        workflowClient,
         configRepository,
         configs.getMaxWorkers(),
         configs.getWorkerEnvironment(),
