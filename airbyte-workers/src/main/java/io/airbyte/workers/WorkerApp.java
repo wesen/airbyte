@@ -408,6 +408,7 @@ public class WorkerApp {
     final WorkflowServiceStubs temporalService = TemporalUtils.createTemporalService();
     final WorkflowClient workflowClient = TemporalUtils.createWorkflowClient(temporalService, TemporalUtils.getNamespace());
     final TemporalClient temporalClient = new TemporalClient(workflowClient, configs.getWorkspaceRoot(), temporalService);
+    TemporalUtils.configureTemporalNamespace(temporalService);
 
     final TemporalWorkerRunFactory temporalWorkerRunFactory = new TemporalWorkerRunFactory(
         temporalClient,
