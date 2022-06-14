@@ -64,7 +64,7 @@ public class CursorManager<S> {
    * cursor information for that stream as stored in the connector's state.
    *
    * @param catalog The connector's configured catalog.
-   * @param streamSupplier A {@link Supplier} that provides the cursor manager with the collection of
+   * @param streamSupplier A {@link Supplier} that provides the collection of
    *        streams tracked by the connector's state.
    * @param cursorFunction A {@link Function} that extracts the current cursor from a stream stored in
    *        the connector's state.
