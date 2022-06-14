@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Per-stream implementation of the {@link StateManager} interface.
+ * Stream implementation of the {@link StateManager} interface.
  *
  * This implementation generates a state object for each stream detected in catalog/map of known
  * streams to cursor information stored in this manager.
